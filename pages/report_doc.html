@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+
+    <title>2022 Report Documentation</title>
+    <link rel="icon" type="image/x-icon" href="./chlab_icon.ico">
+
+    <link rel="stylesheet" href="/styles/styles.css">
+    <link rel="stylesheet" href="/styles/dark-theme.css">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
+    
+    <!-- Add VBA code coloring -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/highlightjs-vba/dist/vba.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/index.html"><img src="/images/logo_whiteTextOnly.png" class="logo-img" /></a>
+            <span class="material-icons menu">menu</span>
+        </div>
+    </nav>
+    </nav>
+    <header>
+        <h1 class="title">&ldquo;2022 Report&rdquo; Documentation</h1>
+        <p class="subtitle"> Last edited: Apr 13, 2022 by Chris Miller</p>
+    </header>
+    <section class="content">
+
+        <section>
+            <h1>Introduction</h1>
+            <p>The current CH lab report (&ldquo;2022 report&rdquo;) uses underlying code with a custom query to format
+                the
+                report conditionally for species, test, and sample type. Each species-sample-test combination requires
+                different types of reports (e.g. a dog FNA flow report will have the main page + the dog FNA flow
+                subreport). Previously, a separate report had to be maintained for each combination. This report
+                consolidates all reports into a single report, facilitating future universal modifications.</p>
+            <p>Report generation broadly takes place via the following steps:</p>
+            <ol>
+                <li>Set temporary variables using the &ldquo;Add Writeup&rdquo; form.</li>
+                <li>Query the data to be used in the report</li>
+                <li>Load the appropriate subreport</li>
+                <li>Format fields</li>
+                <li>Do something with the report (preview, save, email).</li>
+            </ol>
+            <p>Making changes to the report requires understanding the processes that fetch, format, and display the
+                data.
+                This document aims to explain these steps in detail.</p>
+            <p>The overall flow of report generation follows the following logic:</p>
+            <img src="./images/2022_report_diagram.svg">
+        </section>
+        <hr>
+
+        <section>
+            <p>
+            <h1>Temporary Variables</h1>
+            </p>
+            <p>
+                While MS Access offers a wide selection of methods to pass data from one
+                form to another, one of the easiest means is using the built-in function
+                setTempVar. This function can be easily called using Access Macros. This
+                report uses temporary variables to determine:
+            </p>
+            <ul>
+                <li>reportID (Avery lab number of the sample),</li>
+                <li>reportSampleType (blood vs other),</li>
+                <li>reportSpecies (cat or dog).</li>
+            </ul>
+            <p>
+                The “preview” button uses a macro to set these values. The “export” and
+                “email” buttons set these values using <strong>Modules/Email.setReportID()</strong>. This function also
+                sets
+                the
+                reference lab number for usage by the report saving commands.
+            </p>
+            <pre><code class="">    'Set parameters needed for report generation
+    Function setReportID(frm As Form)
+        'Used by the query for the report
+        TempVars.ADD "reportID", frm.Avery_Lab_Number.Value 
+        'Used in the file name
+        TempVars.ADD "refNum", frm.Reference_lab_number.Value 
+        'Used to set the species for the subform in the report
+        TempVars.ADD "reportSpecies", frm.Species.Value 
+        ' Used to set the sample type for the subform in the report
+        TempVars.ADD "reportSampleType", frm.[Sample type].Value 
+    End Function
+</code></pre>
+        </section>
+        <hr>
+        <section>
+            <p>
+            <h1>Report Query</h1>
+            </p>
+            <img src="./images/img_qry_relations.png">
+            <p>
+                The 2022 report uses “qryReport” as the underlying query. There are a few
+                considerations when modifying this query:
+            </p>
+            <ul>
+                <li>Data are filtered to the current sample using TempVars!ReportID set in the previous step.</li>
+                <li>[qryPCR and comments] includes criteria to remove anything with the word &ldquo;repeat&rdquo; in the
+                    comments section of the PCR table</li>
+                <li>[qryLymphocyteCounts] includes:
+                    <ul>
+                        <li>Flow percentages</li>
+                        <li>Flow counts</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>The Flow counts fields use a VB expression to calculate the blood counts. The format for this
+                expression is: </p>
+            <pre><code>NAME: EXPRESSION</code></pre>
+            <ul>
+                <li>Where NAME becomes the column header for the expression and EXPRESSION is any VB
+                    method (e.g. WBC*flowPercent/100)</li>
+            </ul>
+            <p>For example:</p>
+            <pre><code>RefNum: [Reference lab number]</code></pre>
+            <ul>
+                <li>To reference the field in the example above, in the report, you must use [RefNum] as the source, NOT
+                    [Reference lab number]
+                </li>
+            </ul>
+            <p>The following fields use an expression in the query:</p>
+            <img src="./images/img_qry_fields.png">
+            <p>It is important to note that any fields which use an expression must be referenced by the variable name
+                declared in the expression, NOT by the field&rsquo;s name in the table</p>
+            <p>Because Access does not do well with dynamic sizing of components in the horizontal axis, some fields use
+                the
+                following expression to concatenate text with the field value:</p>
+            <pre><code> &ldquo;Inserted text: &rdquo; &amp; [Field]</code></pre>
+            <p>For example:</p>
+            <pre><code>Veterinarian: "Clinician: " &amp; UCase([Veterinarians].[Last name])</code></pre>
+            <ul>
+                <li>&ldquo;Veterinarian&rdquo; becomes the new column header (i.e. this is the new name we will
+                    reference in
+                    the report using the source field)</li>
+                <li>UCase() capitalizes everything within the parentheses</li>
+                <li>The word &ldquo;Clinician:&rdquo; is tacked on to the beginning</li>
+            </ul>
+            <p class="center">Final output (if there is a vet listed)</p>
+            <img src="./images/img_output_vet1.png" />
+            <p class="center">Final output (if there is no vet listed)</p>
+            <img src="./images/img_output_vet2.png" />
+            <p>There are important considerations of concatenating text inside the query.</p>
+            <ul>
+                <li>The &ldquo;label&rdquo; will always be justified properly with the text without an
+                    awkward gap. This is particularly useful if the fields are right aligned since Access only uses the
+                    Left
+                    coordinate when positioning elements. Otherwise, since Access does have a Right coordinate,
+                    dynamically positioning the label and the field is much more complicated. </li>
+                <li>However, if you ever want to check a field if it is empty, you cannot compare the field value to
+                    &ldquo;NULL&rdquo; or &ldquo;&rdquo; because the base value is going to be the string that has been
+                    concatenated to the field.
+                </li>
+            </ul>
+            <p>Although text concatenation can be used for any field to simplify labeling, due to these considerations,
+                it
+                may be easier to use text concatenation to label the field only when it might be right aligned, or it
+                might
+                be moving.</p>
+                <p class="center">The following fields use text concatenation:</p>
+            <div class="centered-block">
+                <ul>
+                    <li>Patient</li>
+                    <li>Species</li>
+                    <li>Breed</li>
+                    <li>DOB</li>
+                    <li>Sex</li>
+                    <li>Clinic number</li>
+                    <li>Veterinarian</li>
+                    <li>Sample type</li>
+                    <li>Site sampled</li>
+                    <li>ClinicAddress2</li>
+                </ul>
+            </div>
+
+        </section>
+        <hr>
+
+        <section>
+            <h1>Understanding report methods</h1>
+
+            <p>Most formatting and conditional data display occurs when the Detail_Format() method is called by the
+                report.
+                However, certain changes (such as changing the subreport object embedded in the report) can only be done
+                when the report is first opened. These changes are handled by the report&rsquo;s Report_Open() method.
+            </p>
+            <div class="card">
+                <h2>Report_Open()</h2>
+                <p>Run commands when the report is first opened. Tied to the "On Open" event in the Report properties.
+                </p>
+                <pre><code>' Run commands when the report opens
+Private Sub Report_Open(Cancel As Integer)
+    Call loadFlowSubform
+
+End Sub
+            </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>loadFlowSubform()</h2>
+                <p>Use the TempVars!reportSpecies and the TempVars!reportSampleType to load one of the following
+                    subreports:
+                </p>
+                <ul>
+                    <li>2022 Report_Cat_Blood</li>
+                    <li>2022 Report_Cat_FNA</li>
+                    <li>2022 Report_K9_Blood</li>
+                    <li>2022 Report_K9_FNA</li>
+                </ul>
+                <pre><code>' Load the appropriate subform for the report
+    Private Function loadFlowSubform()
+        'If the sample contains flow data, load the appropriate subform
+        Dim Species
+        Dim sampleType
+        
+        Species = TempVars!reportSpecies
+        sampleType = TempVars!reportSampleType
+        
+        If Species = "Cat" Then
+            If sampleType = "Peripheral Blood" Then
+                Me.flowSubform.SourceObject = "Report.2022 Report_Cat_Blood"
+            Else
+                Me.flowSubform.SourceObject = "Report.2022 Report_Cat_FNA"
+            End If
+        Else
+            If sampleType = "Peripheral Blood" Then
+                Me.flowSubform.SourceObject = "Report.2022 Report_K9_Blood"
+            Else
+                Me.flowSubform.SourceObject = "Report.2022 Report_K9_FNA"
+            End If
+        End If
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>Detail_Format(Cancel As Integer, FormatCount As Integer)</h2>
+                <p>Run code when the Report is formatted. Tied to the "On Format" event of the Detail section of the
+                    report.
+                </p>
+                <p>Performs the following actions:</p>
+                <ul>
+                    <li>Hide any fields without data using formatFields</li>
+                    <li>Check if the writeup form is open and if so, check if the special report check box is checked.
+                    </li>
+                    <li>Use isFlow and setFlowVisibility to determine if flow data should be shown in the Test Results
+                        section.</li>
+                    <li>Use isPARR and setParrVisibility to determine if PARR data should be shown in the Test Results
+                        section.</li>
+                    <li>Use resetPositions to reset all moveable items in the Test Results section back to their
+                        starting
+                        positions</li>
+                    <li>Conditionally center the data in the Test Results section and conditionally hide the subform
+                    </li>
+                </ul>
+                <pre><code>' Run commands when the report is formatted
+    Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+        
+        'Declare variables
+        Dim flowVisibility As Boolean
+        Dim PARRVisibility As Boolean
+        Dim specialReport
+        
+        'Hide null fields
+        Call formatFields
+        
+        'Determine if special report
+        If CurrentProject.AllForms("Add write up and fax date to case").IsLoaded = True Then 'Writeup form is open
+            'Get value of special report checkbox
+            specialReport = [Forms]![Add write up and fax date to case]![specialReport].Value
+        Else 'Writeup form not open, set specialReport to False
+            specialReport = 0
+        End If
+        
+        'Set Flow to visible if flow
+        flowVisibility = isFlow()
+        setFlowVisibility (flowVisibility)
+        
+        'Set PARR to visible if PARR
+        PARRVisibility = isPARR()
+        setParrVisibility (PARRVisibility)
+        
+        'Reset positions
+        Call resetPositions
+        
+        'Check report type (Special, Flow, Flow/PARR, PARR)
+        If specialReport = -1 Then
+            'Special report
+            Call setSpecialReport
+        ElseIf flowVisibility = True Then
+            ' If flow only, center Flow
+            If PARRVisibility = False Then
+                Call centerFlow 'Center Flow
+            End If
+            
+        ElseIf PARRVisibility = True Then
+            'If PARR only, center PARR, remove subform
+            If FLOWVisibility = False Then
+                Call centerPARR 'Center PARR
+                Me.flowSubform.Visible = False
+            End If
+        Else
+            Me.flowSubform.Visible = False
+        End If
+        
+            
+    End Sub
+                </code></pre>
+            </div>
+
+
+            <div class="card">
+                <h2>formatFields()</h2>
+                <p>Conditionally show/hide fields that may have missing values in the database. Uses setNullVisible to
+                    hide
+                    artificially non-empty, null fields generated by the query.</p>
+                <pre><code>' Set the visibility of the specific fields on this report
+    Private Function formatFields()
+        
+        ' Reset visibility of hidden fields
+        Me.Reference_lab_number.Visible = True
+        Me.Clinic_number_of_paitent.Visible = True
+        Me.Last_Name.Visible = True
+        Me.lab_collected.Visible = True
+        
+        'Set visibility of potentially null fields with queried text
+        Call setNullVisible(Me.Reference_lab_number, "Ref: ")
+        Call setNullVisible(Me.Clinic_number_of_paitent, "Patient ID: ")
+        Call setNullVisible(Me.Last_Name, "Clinician: ")
+        
+        ' Set collected label invisible if collected null
+        If IsNull(Me.Collected) Then
+            Me.lab_collected.Visible = False
+        End If
+        
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>setNullVisible(thisControl as Control, nullText as String)</h2>
+                <p>Handle showing/hiding of fields with alternative null text due to having text concatenated with the
+                    field
+                    in the query.</p>
+                <p>Inputs:</p>
+                <ul>
+                    <li><strong>thisControl as Control:</strong> the name of the field on the report that should be
+                        checked.
+                    </li>
+                    <li><strong>nullText as String:</strong> the text concatenated with the value in the database during
+                        the
+                        query.</li>
+                </ul>
+                <pre><code>' Hide a control if its value is null
+    Function setNullVisible(thisControl As Control, nullText As String)
+        
+        If IsNull(thisControl) Then
+            thisControl.Visible = False
+        ElseIf thisControl = nullText Then
+            thisControl.Visible = False
+        End If
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>isFlow()</h2>
+                <p>Check if the sample contains flow cytometry data ([flowdx1] is not empty). Returns a Boolean
+                    (True/False).</p>
+                <pre><code>' Check if the sample has flow data
+    Private Function isFlow() As Boolean
+    
+    'Check if flow dx 1 empty
+        If IsNull(Me.flowdx1) Then 'If empty, then sample is not Flow
+            isFlow = False
+        Else
+            isFlow = True ' Sample is Flow
+        End If
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>setFlowVisibility(visibility As Boolean)</h2>
+                <p>Show/hide the flow fields in the Test Results section.</p>
+                <p>Inputs:</p>
+                <ul>
+                    <li><strong>visibility As Boolean:</strong> boolean object used to control the Visible property for
+                        all
+                        flow fields on the report.</li>
+                </ul>
+                <pre><code>' Set visibility for flow data
+    Private Function setFlowVisibility(visibility As Boolean)
+        
+        'Set Header
+        Me.header_Flow.Visible = visibility
+    
+        'Set Flow Diagnosis 1
+        Me.flowdx1.Visible = visibility
+        
+        'Set Flow Diagnosis 2
+            'Check if there is a dx 2
+            If IsNull(Me.flowdx2) Then
+                Me.flowdx2.Visible = False
+            Else
+                Me.flowdx2.Visible = visibility
+            End If
+    
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>isPARR()</h2>
+                <p>Check if the sample contains PARR data ([Immunoglobulin gene] is not empty). Returns a Boolean
+                    (True/False).</p>
+                <pre><code>' Check if the sample has PARR data
+    Private Function isPARR() As Boolean
+    
+    'Check if immunoglobulin empty
+        If IsNull(Me.[Immunoglobulin gene]) Then 'If empty, then sample is not PARR
+            isPARR = False
+        Else 'Sample is PARR
+            isPARR = True
+        End If
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>setParrVisibility(visibility As Boolean)</h2>
+                <p>Show/hide the PARR fields in the Test Results section.</p>
+                <p>Inputs:</p>
+                <ul>
+                    <li><strong>visibility As Boolean:</strong> boolean object used to control the Visible property for
+                        all
+                        PARR fields on the report.</li>
+                </ul>
+                <pre><code>' Set visibility for PARR data
+    Private Function setParrVisibility(visibility As Boolean)
+        
+        'Set Header
+        Me.header_PARR.Visible = visibility
+        
+        'Set Immunoglobulin
+        Me.lab_ig.Visible = visibility
+        Me.Immunoglobulin_gene.Visible = visibility
+        
+        'Set TCR
+        Me.lab_tcr.Visible = visibility
+        Me.T_cell_receptor_gene.Visible = visibility
+        
+        'Set PARR footer
+        Me.parrComment.Visible = visibility
+    
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>setSpecialReport()</h2>
+                <p>Gets the value of the special report field in the writeup form. This text replaces the "Flow
+                    Cytometry"
+                    label in the Test Results section, makes all Flow fields in Test Results visible, and centers them.
+                </p>
+                <pre><code>' Set conditions for special report
+    Private Function setSpecialReport()
+        Dim specialReportText
+        specialReportText = Nz([Forms]![Add write up and fax date to case]![text_specialReport].Value, "")
+        
+        Me.flowSubform.Visible = False
+        Me.header_Flow.Caption = specialReportText
+        Call setFlowVisibility(True)
+        Call centerFlow
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>moveCenter(thisControl As Control, thisReport As Report)</h2>
+                <p>Moves the input control to the horizontal center of the report by calculating a new Left value for
+                    the
+                    control based on the control's width and the report's width.</p>
+                <p>Inputs:</p>
+                <ul>
+                    <li><strong>thisControl As Control: </strong>the name of the field on the report that should be
+                        moved to
+                        the center.</li>
+                    <li><strong>thisReport As Report: </strong>the name of the report</li>
+                </ul>
+                <pre><code>' Center a control vertically on the report
+    Function moveCenter(thisControl As Control, thisReport As Report)
+        Dim reportWidth
+        Dim reportCenter
+        Dim controlWidth
+        Dim centeredLeft
+        
+        ' Get report width
+        reportWidth = thisReport.Width
+        ' Get report absolute center
+        reportCenter = reportWidth / 2
+        'Get control's width
+        controlWidth = thisControl.Width
+        ' Calculate centered position
+        centeredLeft = (reportWidth - controlWidth) / 2
+        
+        ' Set text alignment to "Centered"
+        thisControl.TextAlign = 2
+        ' Move control to center
+        thisControl.Move (centeredLeft)
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>centerFlow()</h2>
+                <p>Moves all flow data to the center of Test Results.</p>
+                <pre><code>' Center flow data
+    Private Function centerFlow() As Boolean
+        
+        Call moveCenter(Me.header_Flow, Me)
+        Call moveCenter(Me.flowdx1, Me)
+        Call moveCenter(Me.flowdx2, Me)
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>centerPARR()</h2>
+                <p>Moves the labels for PARR fields to the center of Test Results. Aligns the associated fields
+                    immediately
+                    to the right of the labels.</p>
+                <pre><code>'Center PARR data
+    Private Function centerPARR() As Boolean
+        Dim labLeft
+        Dim resultLeft
+        
+        Call moveCenter(Me.header_PARR, Me)
+        labLeft = (Me.header_PARR.Left)
+        
+        Me.lab_ig.Move (labLeft)
+        Me.lab_tcr.Move (labLeft)
+        
+        resultLeft = labLeft + lab_ig.Width
+        
+        Me.Immunoglobulin_gene.Move (resultLeft)
+        Me.T_cell_receptor_gene.Move (resultLeft)
+        
+    End Function
+    </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>resetPositions()</h2>
+                <p>Reset the position of all moveable fields. Reset the formatting (text alignment) of center-able
+                    fields.
+                </p>
+                <p>Since the positions of the following fields are reset by this method, any permanent change to the
+                    positioning of these fields also requires changing the Left value for that field in this function.
+                </p>
+                <p>Moveable fields:</p>
+                <ul>
+                    <li>header_Flow</li>
+                    <li>flowdx1</li>
+                    <li>flowdx2</li>
+                    <li>header_PARR</li>
+                    <li>lab_ig</li>
+                    <li>lab_tcr</li>
+                    <li>Immunoglobulin_gene</li>
+                    <li>T_cell_receptor_gene</li>
+                </ul>
+                <pre><code>' Reset the positions of any moveable controls
+    Private Function resetPositions()
+    'This function resets the positioning and formatting of moveable fields
+    
+        'Reset positions
+        Me.header_Flow.Left = 360
+        Me.flowdx1.Left = 360
+        Me.flowdx2.Left = 360
+        Me.header_PARR.Left = 5640
+        Me.lab_ig.Left = 5640
+        Me.lab_tcr.Left = 5640
+        Me.Immunoglobulin_gene.Left = 8280
+        Me.T_cell_receptor_gene.Left = 8280
+        
+        'Reset formatting
+        Me.header_Flow.TextAlign = 1
+        Me.flowdx1.TextAlign = 1
+        Me.flowdx2.TextAlign = 1
+        Me.header_PARR.TextAlign = 1
+        
+    End Function
+    </code></pre>
+            </div>
+
+        </section>
+        <hr>
+
+        <section>
+            <h1>Subreports</h1>
+            <p>The Blood reports use the built-in MS Access method Iif() to conditionally display "H" or "L" for CBC
+                values.
+            </p>
+            <pre><code>Iif([condition to test], [result if True], [result if False])</code></pre>
+            <p>It is possible to nest Iif() statements by inserting a second Iif() statement in place of one of the
+                results.
+                For example:</p>
+            <pre><code>Iif((A = B), "A=B", (Iif((A = C), "A=C", "A does not equal B or C")))</code></pre>
+            <p>The code above asks, "If A equals B, set the text to "A=B". If A does not equal B, check if A equals C.
+                If A
+                equals C, set the text to "A=C". If A does not equal C, set the text to "A does not equal B or C". The
+                equivalent code in VBA would be:</p>
+            <pre><code>'VBA equivalent of nested Iif()
+    If (A = B) Then
+        Me.Text = "A=B"
+    Else
+        If (A = C) Then
+            Me.Text = "A=C"
+        Else
+            Me.Text = "A does not equal B or C"
+        End If
+    End If
+        </code></pre>
+            <p></p>
+            <p>The following subreports also use underlying code to conditionally display/format data:</p>
+            <ul>
+                <li>2022_Report_Cat_Blood</li>
+                <li>2022_Report_K9_Blood</li>
+                <li>2022_Report_K9_FNA</li>
+            </ul>
+            <p>These methods are detailed below.</p>
+
+            <div class="card">
+                <h1>2022 Report Cat Blood</h1>
+                <div class="card">
+                    <h2>Detail_Format(Cancel As Integer, FormatCount As Integer)</h2>
+                    <p>Run code when the subreport is formatted. Tied to the "On Format" event of the subreport's Detail
+                        section.</p>
+                    <pre><code>'Run code when formatted
+    Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+    
+        'Check for CSU CBC and center date if N/A
+        setCbcFormatting
+    End Sub
+    </code></pre>
+                </div>
+                <div class="card">
+                    <h2>setCbcFormatting()</h2>
+                    <p>Hide the CSU CBC fields using the Visible property when there was no CSU CBC performed. Center
+                        CBC
+                        date if no CSU CBC.</p>
+                    <pre><code>'If the CSU CBC field is empty, hide the field and center the date
+    Private Sub setCbcFormatting()
+    
+        'Reset moveable fields position
+        Me.lab_CBC.Left = 2460
+        Me.Date_of_CBC.Left = 4065
+        
+        'Reset visibility
+        Me.CSU_CBC_DLab_number.Visible = True
+        Me.lab_CsuCbc.Visible = True
+        
+        'If CSU CBC empty, hide fields
+        If IsNull(Me.CSU_CBC_DLab_number) Then
+            'Hide CSU CBC when empty
+            Me.CSU_CBC_DLab_number.Visible = False
+            Me.lab_CsuCbc.Visible = False
+            'Center CBC date
+            Me.lab_CBC.Left = 4400
+            Me.Date_of_CBC.Left = 4460 + Me.lab_CBC.Width
+        Else
+            Me.CSU_CBC_DLab_number.Visible = True
+            Me.lab_CsuCbc.Visible = True
+        End If
+    End Sub
+                </code></pre>
+                </div>
+            </div>
+            <div class="card">
+                <h1>2022 Report K9 Blood</h1>
+                <div class="card">
+                    <h2>Detail_Format(Cancel As Integer, FormatCount As Integer)</h2>
+                    <p>Run code when the subreport is formatted. Tied to the "On Format" event of the subreport's Detail
+                        section.</p>
+                    <pre><code>'Run code when formatted
+    Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+    
+        'Check for CSU CBC and center date if N/A
+        setCbcFormatting
+        
+        'Check if B cell and hide field if not
+        setBcellVisible
+    End Sub
+                </code></pre>
+                </div>
+                <div class="card">
+                    <h2>setCbcFormatting()</h2>
+                    <p>Hide the CSU CBC fields using the Visible property when there was no CSU CBC performed. Center
+                        CBC
+                        date if no CSU CBC.</p>
+                    <pre><code>'If the CSU CBC field is empty, hide the field and center the date
+    Private Sub setCbcFormatting()
+    
+        'Reset moveable fields position
+        Me.lab_CBC.Left = 2200
+        Me.Date_of_CBC.Left = 3615
+        
+        'Reset visibility
+        Me.CSU_CBC_DLab_number.Visible = True
+        Me.lab_CsuCbc.Visible = True
+        
+        'If CSU CBC empty, hide fields
+        If IsNull(Me.CSU_CBC_DLab_number) Then
+            'Hide CSU CBC when empty
+            Me.CSU_CBC_DLab_number.Visible = False
+            Me.lab_CsuCbc.Visible = False
+            'Center CBC date
+            Me.lab_CBC.Left = 4580
+            Me.Date_of_CBC.Left = 4640 + Me.lab_CBC.Width
+        Else
+            Me.CSU_CBC_DLab_number.Visible = True
+            Me.lab_CsuCbc.Visible = True
+        End If
+    End Sub
+                </code></pre>
+                </div>
+                <div class="card">
+                    <h2>setBcellVisible()</h2>
+                    <p>Hide the B cell information if there is no B cell data in [Cat_size]</p>
+                    <pre><code>'Set visibility of B cell fields if B cell
+    Private Sub setBcellVisible()
+        Dim visibility As Boolean
+        
+        'If B cell size empty, hide fields
+        If IsNull(Me.Cat_size) Then
+            visibility = False
+        Else
+            visibility = True
+        End If
+        
+        'Set visibility
+        Me.lab_bCellSize.Visible = visibility
+        Me.Cat_size.Visible = visibility
+    End Sub
+                    </code></pre>
+                </div>
+            </div>
+            <div class="card">
+                <h1>2022 Report K9 FNA</h1>
+                <div class="card">
+                    <h2>Detail_Format(Cancel As Integer, FormatCount As Integer)</h2>
+                    <p>Run code when the subreport is formatted. Tied to the "On Format" event of the subreport's Detail
+                        section.</p>
+                    <pre><code>'Run code on format
+    Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+    
+        'Check if B cell and hide field if not
+        setBcellVisible
+    End Sub
+                </code></pre>
+                </div>
+                <div class="card">
+                    <h2>setBcellVisible()</h2>
+                    <p>Hide the B cell information if there is no B cell data in [Cat_size]</p>
+                    <pre><code>'Set visibility of B cell fields if B cell
+    Private Sub setBcellVisible()
+        Dim visibility As Boolean
+        
+        'If B cell size empty, hide fields
+        If IsNull(Me.Cat_size) Then
+            visibility = False
+        Else
+            visibility = True
+        End If
+        
+        'Set visibility
+        Me.box_bCell.Visible = visibility
+        Me.lab_boxBCell.Visible = visibility
+        Me.lab_bCellSize.Visible = visibility
+        Me.lab_bCellClassII.Visible = visibility
+        Me.Cat_size.Visible = visibility
+        Me.Cat_class_II.Visible = visibility
+        Me.lab_bCellDescription.Visible = visibility
+        
+        
+    End Sub
+                </code></pre>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <script src="" async defer></script>
+</body>
+
+</html>
