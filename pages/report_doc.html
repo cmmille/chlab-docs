@@ -58,7 +58,7 @@
                 data.
                 This document aims to explain these steps in detail.</p>
             <p>The overall flow of report generation follows the following logic:</p>
-            <img src="./images/2022_report_diagram.svg">
+            <img src="../images/2022_report_diagram.svg">
         </section>
         <hr>
 
@@ -84,7 +84,7 @@
                 the
                 reference lab number for usage by the report saving commands.
             </p>
-            <pre><code class="">    'Set parameters needed for report generation
+            <pre><code>    'Set parameters needed for report generation
     Function setReportID(frm As Form)
         'Used by the query for the report
         TempVars.ADD "reportID", frm.Avery_Lab_Number.Value 
@@ -102,7 +102,7 @@
             <p>
             <h1>Report Query</h1>
             </p>
-            <img src="./images/img_qry_relations.png">
+            <img src="../images/img_qry_relations.png">
             <p>
                 The 2022 report uses “qryReport” as the underlying query. There are a few
                 considerations when modifying this query:
@@ -133,7 +133,7 @@
                 </li>
             </ul>
             <p>The following fields use an expression in the query:</p>
-            <img src="./images/img_qry_fields.png">
+            <img src="../images/img_qry_fields.png">
             <p>It is important to note that any fields which use an expression must be referenced by the variable name
                 declared in the expression, NOT by the field&rsquo;s name in the table</p>
             <p>Because Access does not do well with dynamic sizing of components in the horizontal axis, some fields use
@@ -150,9 +150,9 @@
                 <li>The word &ldquo;Clinician:&rdquo; is tacked on to the beginning</li>
             </ul>
             <p class="center">Final output (if there is a vet listed)</p>
-            <img src="./images/img_output_vet1.png" />
+            <img src="../images/img_output_vet1.png" />
             <p class="center">Final output (if there is no vet listed)</p>
-            <img src="./images/img_output_vet2.png" />
+            <img src="../images/img_output_vet2.png" />
             <p>There are important considerations of concatenating text inside the query.</p>
             <ul>
                 <li>The &ldquo;label&rdquo; will always be justified properly with the text without an
