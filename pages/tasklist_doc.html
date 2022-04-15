@@ -34,7 +34,7 @@
     </nav>
     <header>
         <h1 class="title">Tasklist Documentation (Add PARR button)</h1>
-        <p class="subtitle"> Last edited: Apr 13, 2022 by Chris Miller</p>
+        <p class="subtitle"> Last edited: Apr 15, 2022 by Chris Miller</p>
     </header>
 
 
@@ -49,8 +49,82 @@
             <p>The "Add PARR" button in the writeup form uses these built in methods to pass information from MS Access
                 to the MS Outlook task list.</p>
             <img src="../images/img_tasklist_writeup-screen.png" />
-            <p class="center">The Add PARR button uses an "On Click" event to open the Add PARR form by using the following macro:</p>
-            <img src="../images/img_tasklist_btn-macro.png"/>
+        </section>
+        <section>
+            <h1>Prerequisites</h1>
+            <p>To use the Add PARR button, some initial configuration in MS Outlook is required:</p>
+            <ul>
+                <li>cvmbs-mip_clinical_hematopathology@Mail.colostate.edu is added as an account to MS Outlook. </li>
+                <ul>
+                    <li>For information on setting up the CH lab email on your computer, please see <a
+                            href="../docs/CH lab email setup.pdf">CH lab email setup</a> </li>
+                </ul>
+                <li>The CH lab email must be set as the default email and the default Data File in MS Outlook's Account
+                    Settings for database functionality to properly work. </li>
+                <li>The Add PARR button assumes a folder called "Tasks" exists in the default account. If the above
+                    settings are not correctly configured, the PARR task will either be added to your personal account,
+                    or Access will throw an error because the expected path does not exist.</li>
+
+            </ul>
+        </section>
+        <section>
+            <h1>Add PARR form</h1>
+            <p>The Add PARR button uses an "On Click" event to open the Add PARR form by using the
+                following macro:</p>
+            <img src="../images/img_tasklist_btn-macro.png" />
+            <p>The Add PARR form uses the [qrySamplePatients] query as the Record Source.</p>
+            <pre><code>SELECT qrySamplePatients.* FROM qrySamplePatients;</code></pre>
+            <p>Inspecting the Property Sheet for the Add PARR form reveals the Filter condition set by the "Add PARR"
+                button in the "Add Writeup" form.</p>
+            <pre><code>[Avery Lab Number]=155882</code></pre>
+            <img src="../images/img_tasklist_form.png"/>
+            <p>The form displays the information already in the database (the sample and patient information) in the
+                header of the form. These fields have the "Locked" property set to "Yes" to prevent accidental data
+                editing.</p>
+            <p>The [txt_clinicContact] and [txt_initials] are Unbound fields (they do not have a Control Source).</p>
+            <p>[txt_initials] uses a query to get the technician initials from the Personnel table:</p>
+            <pre><code>SELECT Personnel.Initials, Personnel.[Last name], Personnel.[First name] FROM Personnel;</code></pre>
+            <p>There is also one hidden field: [txt_addInfo] which is later used to concatenate the generated PARR message with text previous text in this Additional info box.</p>
+            <img src="../images/img_tasklist_form-design-view.png"/>
+            <p>The "Add PARR" button on this form uses a macro to run a VBA function: </p>
+            <img src="../images/img_tasklist_btn-macro-form.png"/>
+        </section>
+
+        <section>
+            <h1>Tasklist Module</h1>
+            <p>All of the code used to add an item to the tasklist is contained in the "Tasklist" Module. These methods are described in detail below.</p>
+
+            <div class="card">
+                <h2>fun_addPARR()</h2>
+                <pre><code>Function fun_addPARR()
+'This function adds PARR to the tasklist
+
+    'Variables
+    Dim dueDate As Date
+    Dim subjectText As String
+    
+    
+    'Set values
+    dueDate = Date + 1
+    ''subjectText = "test"
+    subjectText = fun_gatherInfo()
+    
+    'Add to tasklist
+    Call fun_addTaskList(subjectText, dueDate)
+    
+    'Add note to additional info as well as tasklist
+    Call fun_appendNote
+    
+    'Change the report date to 1/1/1901
+    Call fun_setReportDate("1/1/1901")
+    
+    'Alert user done
+    DoCmd.CLOSE acForm, "Add PARR", acSaveNo
+    MsgBox "PARR added to tasklist and database"
+    
+End Function
+                </code></pre>
+            </div>
         </section>
     </div>
 </body>
