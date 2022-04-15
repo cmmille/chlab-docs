@@ -103,6 +103,9 @@ nav{
     text-decoration: none;
     color: #004C23;
     font-size: 1.5rem;
+    display: block;
+    margin: 1rem auto;
+    line-height: 2rem;
 }
 .link a:hover{
     color: goldenrod;

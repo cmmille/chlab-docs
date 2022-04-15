@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+
+    <title>Tasklist Documentation</title>
+    <link rel="icon" type="image/x-icon" href="../chlab_icon.ico">
+
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Add VBA code coloring -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/highlightjs-vba/dist/vba.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
+            <span class="material-icons menu">menu</span>
+        </div>
+    </nav>
+    </nav>
+    <header>
+        <h1 class="title">Tasklist Documentation (Add PARR button)</h1>
+        <p class="subtitle"> Last edited: Apr 13, 2022 by Chris Miller</p>
+    </header>
+
+
+    <div class="content">
+        <section>
+            <h1>Introduction</h1>
+            <p>Microsoft offers built in VBA methods to crete instances of other office Applications. Using these
+                methods,
+                it is possible to communicate between a MS Access front end database and another MS Office application
+                (e.g.
+                Outlook, Word, Excel).</p>
+            <p>The "Add PARR" button in the writeup form uses these built in methods to pass information from MS Access
+                to the MS Outlook task list.</p>
+            <img src="../images/img_tasklist_writeup-screen.png" />
+            <p class="center">The Add PARR button uses an "On Click" event to open the Add PARR form by using the following macro:</p>
+            <img src="../images/img_tasklist_btn-macro.png"/>
+        </section>
+    </div>
+</body>
