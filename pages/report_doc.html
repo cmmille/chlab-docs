@@ -15,9 +15,8 @@
     <link rel="stylesheet" href="../styles/dark-theme.css">
 
     <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
     <!-- Add VBA code coloring -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/highlightjs-vba/dist/vba.min.js"></script>
@@ -30,8 +29,17 @@
             <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
             <span class="material-icons menu">menu</span>
         </div>
+        <div id="menu" class="menu-pulldown pulldown">
+            <ul class="menu-items">
+                <li><a href="/chlab-docs">Home</a></li>
+                <li><a href="/pages/report_doc.html">2022 Report</a></li>
+                <li><a href="/pages/tasklist_doc.html">Tasklist (Add PARR Button)</a></li>
+                <li><a href="/pages/emailer_docs.html">Report Emailer</a></li>
+                <li><a href="/pages/64k_docs.html">64k Problem</a></li>
+            </ul>
+        </div>
     </nav>
-    </nav>
+
     <header>
         <h1 class="title">&ldquo;2022 Report&rdquo; Documentation</h1>
         <p class="subtitle"> Last edited: Apr 13, 2022 by Chris Miller</p>
@@ -170,7 +178,7 @@
                 may be easier to use text concatenation to label the field only when it might be right aligned, or it
                 might
                 be moving.</p>
-                <p class="center">The following fields use text concatenation:</p>
+            <p class="center">The following fields use text concatenation:</p>
             <div class="centered-block">
                 <ul>
                     <li>Patient</li>
@@ -808,7 +816,10 @@ End Sub
         </section>
     </div>
 
-    <script src="" async defer></script>
+    <!--JQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- JavaScript -->
+    <script src="/index.js"></script>
 </body>
 
 </html>

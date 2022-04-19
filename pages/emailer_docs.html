@@ -30,8 +30,17 @@
             <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
             <span class="material-icons menu">menu</span>
         </div>
+        <div id="menu" class="menu-pulldown pulldown">
+            <ul class="menu-items">
+                <li><a href="/chlab-docs">Home</a></li>
+                <li><a href="/pages/report_doc.html">2022 Report</a></li>
+                <li><a href="/pages/tasklist_doc.html">Tasklist (Add PARR Button)</a></li>
+                <li><a href="/pages/emailer_docs.html">Report Emailer</a></li>
+                <li><a href="/pages/64k_docs.html">64k Problem</a></li>
+            </ul>
+        </div>
     </nav>
-    </nav>
+
     <header>
         <h1 class="title">Report Emailer</h1>
         <p class="subtitle"> Last edited: Apr 19, 2022 by Chris Miller</p>
@@ -167,7 +176,8 @@ End Function
                 <h2>fun_gatherEmails(frm As Form) As String</h2>
                 <p>Gather all emails from the Sample Submission table and the Veterinarian table for the associated
                     record. Accepts a form (the writeup form) as input. Returns a list of emails as a string. Since
-                    emails could be duplicated between the Veterinarian and Sample tables, all duplicate emails are first
+                    emails could be duplicated between the Veterinarian and Sample tables, all duplicate emails are
+                    first
                     removed using uniqueArr(). </p>
                 <pre><code>'This function gathers the emails from the submittting clinic and the doctors
 Private Function fun_gatherEmails(frm As Form) As String
@@ -223,7 +233,8 @@ End Function
 
             <div class="card">
                 <h2>fun_subjectLineReport(frm As Form) As String</h2>
-                <p>This function generates a pre-formatted subject line for the email using information gathered from the Writeup Form.</p>
+                <p>This function generates a pre-formatted subject line for the email using information gathered from
+                    the Writeup Form.</p>
                 <p>Format:</p>
                 <p class="center">Emailing Test Results: [PDF_NAME] "[PATIENT_NAME]" [LAST_NAME]</p>
                 <pre><code>'This function creates a subject line for the report
@@ -237,7 +248,8 @@ End Function
 
             <div class="card">
                 <h2>fun_reportMessage(frm As Form) As String</h2>
-                <p>This function returns a pre-formatted email body using information gathered from the Writeup Form. The signature is set using fun_emailSig().</p>
+                <p>This function returns a pre-formatted email body using information gathered from the Writeup Form.
+                    The signature is set using fun_emailSig().</p>
                 <p>Format:</p>
                 <div class="block">
                     <p>Please see the attached test results for "[PATIENT_NAME]" [LAST_NAME].</p>
@@ -255,7 +267,7 @@ Private Function fun_reportMessage(frm As Form) As String
 End Function
                 </code></pre>
             </div>
-            
+
             <div class="card">
                 <h2>fun_emailSig() As String</h2>
                 <p>This function returns a pre-formatted signature for use in emails.</p>
@@ -287,7 +299,8 @@ End Function
 
             <div class="card">
                 <h2>fun_getPdfName(frm As Form) As String</h2>
-                <p>This function returns the file name that will be used for the output pdf. Information for the name is gathered from the Writeup form. </p>
+                <p>This function returns the file name that will be used for the output pdf. Information for the name is
+                    gathered from the Writeup form. </p>
                 <ul>
                     <li>If there is a reference lab number, the format is: [DLab_Num] [Ref_Num]</li>
                     <li>If there is no reference lab number, the format is: [DLab_Num]</li>
@@ -316,4 +329,11 @@ End Function
 
 
     </div>
+
+    <!--JQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- JavaScript -->
+    <script src="/index.js"></script>
 </body>
+
+</html>

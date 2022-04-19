@@ -30,8 +30,17 @@
             <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
             <span class="material-icons menu">menu</span>
         </div>
+        <div id="menu" class="menu-pulldown pulldown">
+            <ul class="menu-items">
+                <li><a href="/chlab-docs">Home</a></li>
+                <li><a href="/pages/report_doc.html">2022 Report</a></li>
+                <li><a href="/pages/tasklist_doc.html">Tasklist (Add PARR Button)</a></li>
+                <li><a href="/pages/emailer_docs.html">Report Emailer</a></li>
+                <li><a href="/pages/64k_docs.html">64k Problem</a></li>
+            </ul>
+        </div>
     </nav>
-    </nav>
+
     <header>
         <h1 class="title">Solving the MS Access 64k Problem</h1>
         <p class="subtitle"> Last edited: Apr 19, 2022 by Chris Miller</p>
@@ -40,7 +49,9 @@
     <div class="content">
         <section>
             <h1>Introduction</h1>
-            <p>Combo boxes are a convenient way for users to link a record from one table to another table without having to directly choose the key. These boxes run a query under the hood to display the dropdown rows. </p>
+            <p>Combo boxes are a convenient way for users to link a record from one table to another table without
+                having to directly choose the key. These boxes run a query under the hood to display the dropdown rows.
+            </p>
             <p>For example: </p>
             <div class="card">
                 <h2>Veterinarian combobox:</h2>
@@ -50,7 +61,8 @@
                 FROM Clinics INNER JOIN Veterinarians ON Clinics.ID = Veterinarians.[Clinic name]
                 ORDER BY Veterinarians.[Last Name], Veterinarians.[First Name];
                 </code></pre>
-                <p>These columns are then formatted so that the first column (Vet Number) is hidden and only the last 4 columns are visible.</p>
+                <p>These columns are then formatted so that the first column (Vet Number) is hidden and only the last 4
+                    columns are visible.</p>
                 <img src="../images/img_64k_prop-sheet.png" alt="property sheet for vet combo box">
             </div>
         </section>
@@ -58,14 +70,21 @@
         <hr>
         <section>
             <h1>Problem:</h1>
-            <p>The combo box has limitations set by the designers of MS Access. Each combo box is only allocated so much memory, and can consequently only display the first ~64k records of that query. If the query contains >64k records, the combo box does not display the latter records. </p>
+            <p>The combo box has limitations set by the designers of MS Access. Each combo box is only allocated so much
+                memory, and can consequently only display the first ~64k records of that query. If the query contains
+                >64k records, the combo box does not display the latter records. </p>
             <h1>Solution:</h1>
-            <p>We can avoid the 64k problem by narrowing our query such that less than 64k records are displayed. One possible solution is to dynamically adjust the query using a WHERE clause based on the text typed into the combo box.</p>
+            <p>We can avoid the 64k problem by narrowing our query such that less than 64k records are displayed. One
+                possible solution is to dynamically adjust the query using a WHERE clause based on the text typed into
+                the combo box.</p>
 
             <div class="card">
                 <h2>setSource_patient64k(thisControl As Control)</h2>
                 <p><strong>Modules/General/setSource_patient64k</strong></p>
-                <p>This function accepts a control (i.e. the problematic combo box) and dynamically sets the RowSource query. The first letter of the text typed into the combo box is concatenated into the WHERE clause of the query. To prevent unnecessary querying (which decreases performance), the RowSource is only re-queried when the first letter changes. </p>
+                <p>This function accepts a control (i.e. the problematic combo box) and dynamically sets the RowSource
+                    query. The first letter of the text typed into the combo box is concatenated into the WHERE clause
+                    of the query. To prevent unnecessary querying (which decreases performance), the RowSource is only
+                    re-queried when the first letter changes. </p>
                 <pre><code>' Deal with 64k problem for patients
 Function setSource_patient64k(thisControl As Control)
 
@@ -113,4 +132,10 @@ End Sub
         </section>
     </div>
 
+    <!--JQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- JavaScript -->
+    <script src="/index.js"></script>
 </body>
+
+</html>
