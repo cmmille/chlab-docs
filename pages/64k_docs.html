@@ -73,6 +73,11 @@
             <p>The combo box has limitations set by the designers of MS Access. Each combo box is only allocated so much
                 memory, and can consequently only display the first ~64k records of that query. If the query contains
                 >64k records, the combo box does not display the latter records. </p>
+
+        </section>
+
+        <hr>
+        <section>
             <h1>Solution:</h1>
             <p>We can avoid the 64k problem by narrowing our query such that less than 64k records are displayed. One
                 possible solution is to dynamically adjust the query using a WHERE clause based on the text typed into
