@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+
+    <title>Emailer</title>
+    <link rel="icon" type="image/x-icon" href="../chlab_icon.ico">
+
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Add VBA code coloring -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/highlightjs-vba/dist/vba.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
+            <span class="material-icons menu">menu</span>
+        </div>
+    </nav>
+    </nav>
+    <header>
+        <h1 class="title">Report Emailer</h1>
+        <p class="subtitle"> Last edited: Apr 19, 2022 by Chris Miller</p>
+    </header>
+
+    <div class="content">
+        <section>
+            <h1>Introduction</h1>
+            <p>Microsoft offers built in VBA methods to crete instances of other office Applications. Using these
+                methods,
+                it is possible to communicate between a MS Access front end database and another MS Office application
+                (e.g. Outlook, Word, Excel).</p>
+            <p>The "Email Report" button in the writeup form uses these built in methods to pass information from MS
+                Access to MS Outlook.</p>
+            <img src="../images/img_emailer_buttons.png" alt="row of buttons">
+            <p>The "Email Report" button uses a macro as its "On Click" event that calls cmd_emailReport</p>
+            <img src="../images/img_emailer_btn-macro.png" alt="macro fo button click">
+        </section>
+
+        <hr>
+        <section>
+            <h1>Prerequisites</h1>
+            <p>To use the Add PARR button, some initial configuration in MS Outlook is required:</p>
+            <ul>
+                <li>cvmbs-mip_clinical_hematopathology@Mail.colostate.edu is added as an account to MS Outlook. </li>
+                <ul>
+                    <li>For information on setting up the CH lab email on your computer, please see <a
+                            href="../docs/CH lab email setup.pdf">CH lab email setup</a> </li>
+                </ul>
+                <li>The CH lab email must be set as the default email and the default Data File in MS Outlook's Account
+                    Settings for database functionality to properly work. </li>
+                <li>The Add PARR button assumes a folder called "Tasks" exists in the default account. If the above
+                    settings are not correctly configured, the PARR task will either be added to your personal account,
+                    or Access will throw an error because the expected path does not exist.</li>
+            </ul>
+        </section>
+
+        <hr>
+        <section>
+            <h1>Email Module</h1>
+            <p><strong>Modules/Email/</strong></p>
+            <p>All of the code used to email a report is contained in the "Email" Module. These methods
+                are described in detail below.</p>
+
+            <div class="card">
+                <h2>cmd_emailReport()</h2>
+                <p>This function calls the other methods in the Email module to generate an email with a pre-formatted
+                    subject and message to all addresses in the Sample Submission and Veterinarian records.</p>
+                <p>The following describes the order of events:</p>
+                <ul>
+                    <li>Set the Writeup form as the form from which data will be pulled.</li>
+                    <li>Set the report query using setReportID(frm).</li>
+                    <li>Set which report will be sent (stDocName)</li>
+                    <li>Set the text fields for the email.</li>
+                    <ul>
+                        <li><strong>To: </strong>fun_gatherEmails(frm)</li>
+                        <li><strong>Subject: </strong>fun_subjectLineReport(frm)</li>
+                        <li><strong>Body: </strong>txt_Msg = fun_reportMessage(frm)</li>
+                    </ul>
+                    <li>Rename the pdf using fun_getPdfName(frm)</li>
+                    <li>Use the built-in command SendObject to create an email preview of the report.</li>
+                    <li>Save the pdf to the T drive using Open_And_Save_PDF_quiet (located in Modules/General)</li>
+                </ul>
+                <p>If the user cancels the email, the Error_Handler and Error_Handler_Exit are triggered. Because the
+                    report opened as part of the renaming process, not opening the report preview when the user cancels
+                    can result in improper data being associated with a report. These methods ensure that no matter
+                    what, the report is still opened in preview mode.</p>
+                <pre><code>' Email the report and export the pdf to the T drive
+Function cmd_emailReport()
+    On Error GoTo Error_Handler
+    
+    'Email variables
+    Dim txt_To As String
+    Dim txt_Subject As String
+    Dim txt_Msg As String
+    
+    'Set control form
+    Dim frm As Form
+    Set frm = Forms("Add write up and fax date to case")
+    fun_setForm = frm
+ 
+    'Input variables
+    Call setReportID(frm) 'Set the report query condition
+    Dim stDocName As String
+    stDocName = "2022 Report"
+    
+    'Set text fields for the email
+    txt_To = fun_gatherEmails(frm)
+    txt_Subject = fun_subjectLineReport(frm)
+    txt_Msg = fun_reportMessage(frm)
+
+    'Rename pdf
+    Dim sAttachmentName As String
+    sAttachmentName = fun_getPdfName(frm)
+    DoCmd.OpenReport stDocName, acViewPreview, , , acHidden
+    Reports(stDocName).Caption = sAttachmentName
+    
+    'Open the email preview
+    DoCmd.SendObject acSendReport, stDocName, acFormatPDF, Nz(txt_To, ""), , , Nz(txt_Subject, ""), Nz(txt_Msg, "")
+    'Save pdf to drive
+    Open_And_Save_PDF_quiet stDocName, ""
+    
+
+Error_Handler_Exit:
+    On Error Resume Next
+    DoCmd.OpenReport stDocName, acViewPreview, , , acHidden
+    Exit Function
+
+Error_Handler:
+    If Err.Number &lt&gt 2501 Then    'The user cancelled the email
+        MsgBox Err.Number & vbCrLf & Err.Description
+    End If
+    Resume Error_Handler_Exit
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>setReportID(frm As Form)</h2>
+                <p>Sets TempVars used in report generation and file creation. For more information about report
+                    creation, see the <a href="../pages/report_doc.html">Report documentation</a>.</p>
+                <pre><code>' Set parameters needed for report generation
+Function setReportID(frm As Form)
+    TempVars.ADD "reportID", frm.Avery_Lab_Number.Value 'Used by the query for the report
+    TempVars.ADD "refNum", frm.Reference_lab_number.Value 'Used in the file name
+    TempVars.ADD "reportSpecies", frm.Species.Value 'Used to set the species for the subform in the report
+    TempVars.ADD "reportSampleType", frm.[Sample type].Value ' Used to set the sample type for the subform in the report
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>fun_gatherEmails(frm As Form) As String</h2>
+                <p>Gather all emails from the Sample Submission table and the Veterinarian table for the associated
+                    record. Accepts a form (the writeup form) as input. Returns a list of emails as a string. Since
+                    emails could be duplicated between the Veterinarian and Sample tables, all duplicate emails are first
+                    removed using uniqueArr(). </p>
+                <pre><code>'This function gathers the emails from the submittting clinic and the doctors
+Private Function fun_gatherEmails(frm As Form) As String
+
+    Dim numDoc, numClinic As Variant
+    Dim emailsDoctor, emailsClinic
+    Dim doctorArray, clinicArray
+    Dim uniqueEmails, allEmails
+    
+    numDoc = Nz(frm.[emailsDoctor], 0)
+    numClinic = frm.[emailsClinic]
+    
+    emailsDoctor = Nz(DLookup("[Email address]", _
+        "Veterinarians", "[Vet Number] =" & numDoc), "")
+    emailsClinic = Nz(DLookup("[email]", _
+        "Clinics", "[ID] =" & numClinic), "")
+    
+    doctorArray = Split(emailsDoctor, ";")
+    clinicArray = Split(emailsClinic, ";")
+    uniqueEmails = uniqueArr(doctorArray, clinicArray)
+    allEmails = Join(uniqueEmails, ";")
+    
+    fun_gatherEmails = allEmails
+    
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>uniqueArr(ParamArray myArr() As Variant) As Variant()</h2>
+                <p>This function accepts two arrays as input and returns a dictionary of the unique elements.</p>
+                <pre><code>'This function gets rid of any duplicate email addresses
+Private Function uniqueArr(ParamArray myArr() As Variant) As Variant()
+
+    Dim dict As Object
+    Dim V As Variant, W As Variant, Z As Variant
+    Dim I As Long
+
+Set dict = CreateObject("Scripting.Dictionary")
+For Each V In myArr 'loop through each myArr
+    For Each W In V 'loop through the contents of each myArr
+        Z = Trim(W) 'trim whitespace
+        If Not dict.exists(Z) Then dict.ADD Z, Z
+    Next W
+Next V
+
+
+uniqueArr = dict.keys
+
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>fun_subjectLineReport(frm As Form) As String</h2>
+                <p>This function generates a pre-formatted subject line for the email using information gathered from the Writeup Form.</p>
+                <p>Format:</p>
+                <p class="center">Emailing Test Results: [PDF_NAME] "[PATIENT_NAME]" [LAST_NAME]</p>
+                <pre><code>'This function creates a subject line for the report
+Private Function fun_subjectLineReport(frm As Form) As String
+
+    fun_subjectLineReport = "Emailing Test Results: " & fun_getPdfName(frm) & _
+        " """ & frm.[Patient name] & """ " & frm.[Owner's last name]
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>fun_reportMessage(frm As Form) As String</h2>
+                <p>This function returns a pre-formatted email body using information gathered from the Writeup Form. The signature is set using fun_emailSig().</p>
+                <p>Format:</p>
+                <div class="block">
+                    <p>Please see the attached test results for "[PATIENT_NAME]" [LAST_NAME].</p>
+                    <p>Thank you,</p>
+                    <p>[SIGNATURE]</p>
+                </div>
+                <pre><code>'This function creates a message with the chlab signature for reporting
+Private Function fun_reportMessage(frm As Form) As String
+
+    fun_reportMessage = "Please see the attached test results for """ & _
+        frm.[Patient name] & """ " & frm.[Owner's last name] & "." & _
+        vbNewLine & _
+        vbNewLine & "Thank you," & _
+        fun_emailSig()
+End Function
+                </code></pre>
+            </div>
+            
+            <div class="card">
+                <h2>fun_emailSig() As String</h2>
+                <p>This function returns a pre-formatted signature for use in emails.</p>
+                <p>Format:</p>
+                <div class="block">
+                    <p>Clinical Hematopathology</p>
+                    <p>Colorado State University</p>
+                    <p>Department of Microbiology, Immunology, and Pathology</p>
+                    <p>College of Veterinary Medicine and Biomedical Sciences</p>
+                    <p>Email: ch-lab@colostate.edu</p>
+                    <p>Phone: 970-491-1170</p>
+                    <p>Fax: 970-491-4242</p>
+                    <p>chlab.colostate.edu</p>
+                </div>
+                <pre><code>'This function creates the default chlab signature
+Private Function fun_emailSig() As String
+
+    fun_emailSig = vbNewLine & "Clinical Hematopathology" & _
+        vbNewLine & "Colorado State University" & _
+        vbNewLine & "Department of Microbiology, Immunology and Pathology" & _
+        vbNewLine & "College of Veterinary Medicine and Biomedical Sciences" & _
+        vbNewLine & "Email: ch-lab@colostate.edu" & _
+        vbNewLine & "Phone: 970-491-1170" & _
+        vbNewLine & "Fax: 970-491-4242" & _
+        vbNewLine & "chlab.colostate.edu"
+End Function
+                </code></pre>
+            </div>
+
+            <div class="card">
+                <h2>fun_getPdfName(frm As Form) As String</h2>
+                <p>This function returns the file name that will be used for the output pdf. Information for the name is gathered from the Writeup form. </p>
+                <ul>
+                    <li>If there is a reference lab number, the format is: [DLab_Num] [Ref_Num]</li>
+                    <li>If there is no reference lab number, the format is: [DLab_Num]</li>
+                </ul>
+                <pre><code>'This function creates the name of the pdf (Dlab number + Reference number)
+Private Function fun_getPdfName(frm As Form) As String
+
+    Dim strPrint As String
+    Dim numRef, numDLab
+    
+    numRef = frm.[Reference lab number]
+    numDLab = frm.[D-LAB Sample Number]
+
+    'Check if there's a reference number
+    If Len(numRef & "") = 0 Then
+        strPrint = numDLab
+    Else
+        strPrint = numDLab & " " & numRef
+    End If
+    
+    fun_getPdfName = strPrint
+End Function
+                </code></pre>
+            </div>
+        </section>
+
+
+    </div>
+</body>

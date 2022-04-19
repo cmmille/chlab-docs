@@ -68,9 +68,14 @@ header{
     max-width: 200px;
     padding: 0, 1rem
 }
-/* ul{
-    list-style-position: inside;
-} */
+.block {
+    margin: auto;
+    max-width: fit-content;
+}
+.block p{
+    margin: 0
+}
+
 
 /* ---------- Navbar ---------- */
 .logo-img{
