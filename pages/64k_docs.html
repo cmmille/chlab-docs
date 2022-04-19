@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+
+    <title>64k Problem</title>
+    <link rel="icon" type="image/x-icon" href="../chlab_icon.ico">
+
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/dark-theme.css">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Add VBA code coloring -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/highlightjs-vba/dist/vba.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/chlab-docs/"><img src="../images/logo_whiteTextOnly.png" class="logo-img" /></a>
+            <span class="material-icons menu">menu</span>
+        </div>
+    </nav>
+    </nav>
+    <header>
+        <h1 class="title">Solving the MS Access 64k Problem</h1>
+        <p class="subtitle"> Last edited: Apr 19, 2022 by Chris Miller</p>
+    </header>
+
+    <div class="content">
+        <section>
+            <h1>Introduction</h1>
+            <p>Combo boxes are a convenient way for users to link a record from one table to another table without having to directly choose the key. These boxes run a query under the hood to display the dropdown rows. </p>
+            <p>For example: </p>
+            <div class="card">
+                <h2>Veterinarian combobox:</h2>
+                <img src="../images/img_64k_demo-dropdown.png" alt="expanded combobox">
+                <p>Uses the following query as the Row Source:</p>
+                <pre><code>SELECT Veterinarians.[Vet Number], Veterinarians.[Last Name], Veterinarians.[First Name], Clinics.[Clinic name], Veterinarians.[Email address]
+                FROM Clinics INNER JOIN Veterinarians ON Clinics.ID = Veterinarians.[Clinic name]
+                ORDER BY Veterinarians.[Last Name], Veterinarians.[First Name];
+                </code></pre>
+                <p>These columns are then formatted so that the first column (Vet Number) is hidden and only the last 4 columns are visible.</p>
+                <img src="../images/img_64k_prop-sheet.png" alt="property sheet for vet combo box">
+            </div>
+        </section>
+
+        <section>
+            <h1>Problem:</h1>
+            <p>The combo box has limitations set by the designers of MS Access. Each combo box is only allocated so much memory, and can consequently only display the first ~64k records of that query. If the query contains >64k records, the combo box does not display the latter records. </p>
+            <h1>Solution:</h1>
+            <p>We can avoid the 64k problem by narrowing our query such that less than 64k records are displayed. One possible solution is to dynamically adjust the query using a WHERE clause based on the text typed into the combo box.</p>
+
+            <div class="card">
+                <h2>setSource_patient64k(thisControl As Control)</h2>
+                <p><strong>Modules/General/setSource_patient64k</strong></p>
+                <p>This function accepts a control (i.e. the problematic combo box) and dynamically sets the RowSource query. The first letter of the text typed into the combo box is concatenated into the WHERE clause of the query. To prevent unnecessary querying (which decreases performance), the RowSource is only re-queried when the first letter changes. </p>
+                <pre><code>' Deal with 64k problem for patients
+Function setSource_patient64k(thisControl As Control)
+
+    Dim currentRowSource As String
+    Dim strRowSource As String
+    Dim firstLetter As String
+
+    'Get first letter from field
+    firstLetter = Left(thisControl.Text, 1)
+    ' Create query
+    strRowSource = "SELECT Patients.[Lab number], Patients.[Owner's last name], Patients.[Patient name], Patients.[Clinic number of paitent] FROM Patients WHERE Patients.[Owner's last name] Like '" & _
+    firstLetter & "*' ORDER BY Patients.[Owner's last name], Patients.[Patient name] ASC"
+    
+    'Get current rowsource
+    currentRowSource = thisControl.RowSource
+    
+    ' Requery the field when the user types something
+    ' Only requery if field not empty and if query is not the same. Otherwise constant requerying is too slow.
+    If (firstLetter = "") Then
+        ' Do nothing, field is blank
+    ElseIf (currentRowSource <> strRowSource) Then
+        'Set the rowsource to the new query
+        thisControl.RowSource = strRowSource
+        'Open the dropdown
+        thisControl.Dropdown
+    End If
+End Function
+                </code></pre>
+                <p>This method is called by setting the "On Change" event to setSource_patient64k():</p>
+                <p>Example:</p>
+                <pre><code>Private Sub FieldName_Change()
+    Call setSource_patient64k(Me![FIELD_NAME])
+End Sub
+                </code></pre>
+                <p>Where [FIELD_NAME] is the name of the combobox.</p>
+                <p>Effectively, the query becomes:</p>
+                <pre><code> ' {firstLetter} represents the first letter of the text typed into the combo box.
+    SELECT Patients.[Lab number], Patients.[Owner's last name], Patients.[Patient name], Patients.[Clinic number of paitent]
+    FROM Patients
+    WHERE Patients.[Owner's last name] Like {firstLetter} *
+    ORDER BY Patients.[Owner's last name], Patients.[Patient name] ASC
+                </code></pre>
+            </div>
+
+        </section>
+    </div>
+
+</body>
